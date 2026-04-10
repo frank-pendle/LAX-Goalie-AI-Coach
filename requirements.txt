@@ -13,3 +13,5 @@ opencv-python
 numpy
 moviepy
 Pillow
+tabulate
+google-cloud-storage
