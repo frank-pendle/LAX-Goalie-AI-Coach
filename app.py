@@ -170,11 +170,9 @@ def run_computer_vision_analysis(video_files):
 def generate_ai_critique(action_map):
     if not action_map: return None
 
-    # Define the primary categories consistently
     CATEGORIES = {
         "Stance & Positioning": {
             "title": "1. Stance & Positioning (Arc Play)",
-            "keywords": ["Stance", "Positioning", "Movement"],
             "assessment": "Shows solid foundational understanding but occasionally gets caught with a narrow base, reducing lateral power.",
             "expectation": "According to page 17 of The Lax Goalie Bible, you must utilize the 'Ray Lewis Ready' athletic stance: feet wider than shoulder-width, knees bent, and weight on the balls of your feet.",
             "improvement_plan": "Consciously force a wider base during practice until it becomes muscle memory. This lowers your center of gravity and improves lateral explosiveness.",
@@ -183,7 +181,6 @@ def generate_ai_critique(action_map):
         },
         "Save Movement & Technique": {
             "title": "2. Save Movement & Technique",
-            "keywords": ["Save Movement"],
             "assessment": "Top hand is generally effective. Some inconsistency noted on off-stick low shots, with a tendency to sweep.",
             "expectation": "Page 36 of The Lax Goalie Bible emphasizes driving the top hand in a straight, direct path to the ball with 'rattlesnake-like quickness', avoiding any looping motion.",
             "improvement_plan": "Isolate your hand path. Temporarily remove lower body variables and focus entirely on driving the hands directly to the corners without dropping them first.",
@@ -192,7 +189,6 @@ def generate_ai_critique(action_map):
         },
         "Clearing & Passing": {
             "title": "3. Clearing & Passing",
-            "keywords": ["Clearing"],
             "assessment": "Makes safe outlet passes but could improve decision-making under pressure to find faster clear options.",
             "expectation": "Page 81 of The Lax Goalie Bible strictly forbids 'lazy outlet passes.' You have 4 seconds. The progression is: 1) Secure rebound, 2) Look to shot origin, 3) Look for breaking middies, 4) Look to defenders.",
             "improvement_plan": "Do not let riding attackmen speed up your internal clock. Take a breath, step out to the side of the crease to buy time, and process your progressions.",
@@ -201,7 +197,6 @@ def generate_ai_critique(action_map):
         },
         "Communication & Leadership": {
             "title": "4. Communication & Leadership (Quarterbacking)",
-            "keywords": ["Communication"],
             "assessment": "Vocal and clear with defensive calls, demonstrating good command. Aim for even greater volume and decisiveness.",
             "expectation": "The goalie is the quarterback. Utilizing the B-S-C (Ball, Slide, Command) framework ensures the entire defensive unit operates as one cohesive system.",
             "improvement_plan": "Work with your defense to introduce and practice more advanced calls like 'GILMAN' or specific 'ROTATE' calls for different defensive sets.",
@@ -210,7 +205,6 @@ def generate_ai_critique(action_map):
         }
     }
 
-    # Generate grades based on action map
     performance_summary = {}
     for key, data in CATEGORIES.items():
         events_in_cat = [item for item in action_map if item['Category'] == key]
@@ -221,24 +215,63 @@ def generate_ai_critique(action_map):
             "assessment": data["assessment"]
         }
 
-    # Generate detailed critique
     detailed_critique = {}
     for key, template in CATEGORIES.items():
         grade_info = performance_summary[key]
         obj_grade = round(grade_info['grade'] * random.uniform(0.9, 1.0), 1)
         subj_grade = round(grade_info['grade'] * random.uniform(0.85, 0.95), 1)
-        
         relevant_events = [ev for ev in action_map if ev['Category'] == key]
-        
         commentary = f"Analysis of your video(s) revealed several key moments for '{key}'. "
         if relevant_events:
-            commentary += f"For instance, the '{relevant_events[0]['Action'].lower()}' at {relevant_events[0]['Timestamp']} in '{relevant_events[0]['Video']}' highlights an area for focus. This pattern was observed in other instances as well."
+            commentary += f"For instance, the '{relevant_events[0]['Action'].lower()}' at {relevant_events[0]['Timestamp']} in '{relevant_events[0]['Video']}' highlights an area for focus."
         else:
-            commentary += "No specific events were flagged in this category during analysis, indicating a solid performance."
-
+            commentary += "No specific events were flagged, indicating a solid performance."
         detailed_critique[key] = {**template, "objective_grade": obj_grade, "subjective_grade": subj_grade, "events": relevant_events, "commentary": commentary}
 
     return {"summary": performance_summary, "details": detailed_critique}
+
+def generate_report_text(results, action_map):
+    """Compiles all analysis data into a single Markdown-formatted string."""
+    report = []
+    report.append(f"# LAX Goalie AI Coach Analysis Report\n")
+    report.append(f"**Date of Analysis:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+
+    report.append("## 📊 Performance Summary\n")
+    for metric, values in results['summary'].items():
+        report.append(f"- **{metric}:** {values['grade']}/10")
+        report.append(f"  - *Assessment:* {values['assessment']}\n")
+
+    report.append("\n## 📝 Detailed Technical Critique\n")
+    for category, critique in results['details'].items():
+        report.append(f"### {critique['title']}\n")
+        report.append(f"- **Objective Grade (Fundamentals):** {critique['objective_grade']}/10")
+        report.append(f"- **Subjective Grade (Fluidity):** {critique['subjective_grade']}/10\n")
+        report.append(f"**AI Commentary:** {critique['commentary']}\n")
+        report.append(f"**Expectation:** {critique['expectation']}\n")
+        report.append(f"**Improvement Plan:** {critique['improvement_plan']}\n")
+        report.append(f"**Skill Diagnosis:** {critique['skill_diagnosis']} | **Prescribed Drill:** {critique['drill_recommendation']}\n")
+        if critique['events']:
+            report.append("**Relevant Events:**\n")
+            df = pd.DataFrame(critique['events'])
+            report.append(df[['Video', 'Timestamp', 'Action']].to_markdown(index=False))
+            report.append("\n")
+
+    report.append("\n## 🎯 Summary & Next Steps\n")
+    summary_grades = results['summary']
+    best_skill = max(summary_grades, key=lambda k: summary_grades[k]['grade'])
+    worst_skill = min(summary_grades, key=lambda k: summary_grades[k]['grade'])
+    report.append(f"- **Primary Strength:** {best_skill} ({summary_grades[best_skill]['grade']}/10)")
+    report.append(f"- **Area for Improvement:** {worst_skill} ({summary_grades[worst_skill]['grade']}/10)\n")
+    report.append("**Recommended Training Regime:**\n")
+    for category, critique in results['details'].items():
+        report.append(f"- **For {category}:** *{critique['drill_recommendation']}*")
+
+    report.append("\n\n## 🗺️ Video Action Map (All Events)\n")
+    report.append("A complete directory of all critical timestamps detected by the AI.\n")
+    report.append(pd.DataFrame(action_map).to_markdown(index=False))
+
+    return "\n".join(report)
+
 
 # --- UI Rendering Functions ---
 def display_video_gallery():
@@ -270,9 +303,19 @@ def display_video_gallery():
                 del st.session_state.video_files[key]
         st.rerun()
 
-def display_analysis_dashboard(results):
-    st.header("📊 Analysis Dashboard")
-    st.success("✅ Analysis Complete! Review your performance metrics below.")
+def display_analysis_dashboard(results, report_data):
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        st.header("📊 Analysis Dashboard")
+        st.success("✅ Analysis Complete! Review your performance metrics below.")
+    with col2:
+        st.download_button(
+            label="📥 Download Full Report",
+            data=report_data,
+            file_name=f"LAX_Goalie_Analysis_Report_{datetime.now().strftime('%Y%m%d')}.md",
+            mime="text/markdown",
+            use_container_width=True
+        )
 
     summary_data = results['summary']
     cols = st.columns(4)
@@ -349,7 +392,7 @@ def main():
     st.title("🥍 LAX Goalie AI Coach")
     st.caption("Elite Video Analysis powered by The Lax Goalie Bible")
 
-    tab1, tab2 = st.tabs(["▶️ Video Management & Analysis", "⚙️ Knowledge Base (Backend)"])
+    tab1, tab2 = st.tabs(["▶️ Video Management & Analysis", "⚙️ Knowledge Base"])
 
     with tab1:
         st.header("Upload New Video")
@@ -409,20 +452,39 @@ def main():
 
         if st.session_state.analysis_results:
             st.markdown("---")
-            display_analysis_dashboard(st.session_state.analysis_results)
+            report_data = generate_report_text(st.session_state.analysis_results, st.session_state.action_map)
+            
+            display_analysis_dashboard(st.session_state.analysis_results, report_data)
             display_charts(st.session_state.analysis_results)
             display_detailed_critique(st.session_state.analysis_results, st.session_state.action_map)
             display_summary_and_next_steps(st.session_state.analysis_results)
 
     with tab2:
-        st.header("📚 Knowledge Base Management")
-        st.info("This section allows you to manage the reference PDF documents that power the AI's analysis.")
-        knowledge_files = ["thelaxgoaliebible-ebook.pdf", "GOALTENDER MANUAL.pdf", "Sabrecats-Goalie-Instruction-Manual-2018.pdf", "LGR-11-Lacrosse-Goalie-Drills.pdf", "Goalie_Drills__.pdf"]
-        for f in knowledge_files: st.markdown(f"- 📄 **{f}**")
+        st.header("📚 Central Knowledge Base")
+        st.info("This is the central, shared knowledge base for the application. The AI's analysis for all users is powered by these documents.")
+        
+        kb_path = "knowledge_base"
+        
+        st.subheader("Current Reference Documents")
+        
+        try:
+            knowledge_files = [f for f in os.listdir(kb_path) if f.endswith('.pdf')]
+            if not knowledge_files:
+                st.warning("No reference documents found in the 'knowledge_base' directory.")
+            
+            for f in knowledge_files:
+                st.markdown(f"- 📄 **{f}**")
+        except FileNotFoundError:
+            st.error(f"Error: The directory '{kb_path}' was not found. Please create it and add your reference PDFs.")
+
         st.markdown("---")
-        st.subheader("Upload New or Overwrite Documents")
-        st.file_uploader("Upload PDFs", type="pdf", accept_multiple_files=True, key="kb_upload")
-        if st.button("Update Knowledge Base"): st.success("Knowledge base updated successfully!")
+        st.subheader("How to Update")
+        st.markdown("""
+        To add or change the reference documents for all users, you must:
+        1.  Add the new PDF files to the `knowledge_base` folder in the project's GitHub repository.
+        2.  Remove any old files from that same folder.
+        3.  Commit the changes to GitHub. The application will automatically update with the new knowledge base.
+        """)
 
 if __name__ == "__main__":
     main()
