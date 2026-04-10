@@ -1,0 +1,15 @@
+streamlit
+plotly
+pandas
+langchain
+langchain-community
+langchain-text-splitters
+langchain-openai
+faiss-cpu
+PyPDF2
+tiktoken
+python-dotenv
+opencv-python
+numpy
+moviepy
+Pillow
