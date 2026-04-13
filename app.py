@@ -6,8 +6,6 @@ import random
 import os
 import re
 from datetime import datetime
-from google.cloud import storage
-import json
 
 # --- Page Configuration & Version ---
 VERSION = "v03.02.01.03"
@@ -18,23 +16,9 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- GCP Configuration (FIXED FOR CLOUD RUN) ---
-# When running on Google Cloud Run, the client library will automatically
-# use the service account associated with the revision. No secrets needed.
-try:
-    # Specify your bucket name here
-    BUCKET_NAME = "lax-goalie-videos-frank" # IMPORTANT: Change to your unique bucket name if different
-    storage_client = storage.Client()
-    bucket = storage_client.bucket(BUCKET_NAME)
-    GCS_ENABLED = True
-except Exception as e:
-    GCS_ENABLED = False
-    # This error will show if the service account doesn't have permissions
-    st.error(f"Could not connect to Google Cloud Storage. Please ensure the service account has 'Storage Admin' role. Error: {e}")
-
 # --- State Management ---
 if 'video_files' not in st.session_state:
-    st.session_state.video_files = {} # Will now store GCS paths
+    st.session_state.video_files = {}
 if 'analysis_results' not in st.session_state:
     st.session_state.analysis_results = None
 if 'analysis_in_progress' not in st.session_state:
@@ -44,8 +28,7 @@ if 'action_map' not in st.session_state:
 if 'placeholder_removed' not in st.session_state:
     st.session_state.placeholder_removed = False
 
-
-# --- UI Styling (Unchanged) ---
+# --- UI Styling ---
 def load_css():
     st.markdown("""
     <style>
@@ -70,13 +53,11 @@ def load_css():
     """, unsafe_allow_html=True)
     st.markdown(f'<div class="footer">{VERSION}</div>', unsafe_allow_html=True)
 
-
 # --- AI & Analysis / Report Generation Functions (Unchanged) ---
 TIPS = [
-    "Keep your shoulders square to the shooter at all times. (The Lax Goalie Bible, p. 15)", "A 'Ray Lewis Ready' stance means feet slightly wider than shoulder-width and athletic bend. (The Lax Goalie Bible, p. 17)", "On low saves, think 'what time is it?' Your wrist rotation should be like checking a watch. (The Lax Goalie Bible, p. 38)", "The 5-step arc is fundamental: Pipe Left, 45-Left, Center, 45-Right, Pipe Right. (The Lax Goalie Bible, p. 25)", "Don't drag your trail foot. Finish every save with a shuffle step to stay balanced. (The Lax Goalie Bible, p. 42)", "Top hand drives a straight line to the ball—the shortest distance between two points. (The Lax Goalie Bible, p. 36)", "Practice the 'Walk the Arc' drill (p. 56) to master your positioning without thinking.", "Communication is key. Use the 'B-S-C' framework: Ball, Slide, Command. (The Lax Goalie Bible, p. 107)", "After a goal, use a 'Reset Routine': Deep breath, physical action, positive self-talk. (The Lax Goalie Bible, p. 103)", "For shots inside 8 yards, you must 'Read 'Em and Beat 'Em'—reacting is too slow. (The Lax Goalie Bible, p. 43)",
+    "Keep your shoulders square to the shooter at all times. (The Lax Goalie Bible, p. 15)", "A 'Ray Lewis Ready' stance means feet slightly wider than shoulder-width and athletic bend. (The Lax Goalie Bible, p. 17)", "On low saves, think 'what time is it?' Your wrist rotation should be like checking a watch. (The Lax Goalie Bible, p. 38)", "The 5-step arc is fundamental: Pipe Left, 45-Left, Center, 45-Right, Pipe Right. (The Lax Goalie Bible, p. 25)", "Don't drag your trail foot. Finish every save with a shuffle step to stay balanced. (The Lax Goalie Bible, p. 42)",
 ]
 def run_computer_vision_analysis(video_files):
-    # This remains a simulation as the actual model is external
     action_map = []
     actions = { "Stance & Positioning": ["Stance too narrow", "Weight on heels", "Good athletic base"], "Save Movement & Technique": ["Direct hand path to ball", "Sweeping/looping hand motion", "Excellent wrist rotation"], "Clearing & Passing": ["Rushed, panicked throw", "Lazy outlet pass", "Strong, accurate pass"], "Communication & Leadership": ["Loud, clear 'SHOT' call", "Quiet on defense", "Used 'RESET' call"] }
     for video_name in video_files:
@@ -85,7 +66,6 @@ def run_computer_vision_analysis(video_files):
     return sorted(action_map, key=lambda x: (x['Video'], x['Timestamp']))
 
 def generate_ai_critique(action_map):
-    # This remains a simulation as the actual model is external
     if not action_map: return None
     CATEGORIES = { "Stance & Positioning": { "title": "1. Stance & Positioning (Arc Play)", "assessment": "Shows solid foundational understanding but occasionally gets caught with a narrow base.", "expectation": "Utilize the 'Ray Lewis Ready' athletic stance: feet wider than shoulder-width, knees bent.", "improvement_plan": "Consciously force a wider base during practice.", "skill_diagnosis": "Developing", "drill_recommendation": "Walk the Arc (p. 56)" }, "Save Movement & Technique": { "title": "2. Save Movement & Technique", "assessment": "Top hand is generally effective. Some inconsistency noted on off-stick low shots.", "expectation": "Drive the top hand in a straight, direct path to the ball.", "improvement_plan": "Isolate your hand path, focusing on driving hands directly to corners.", "skill_diagnosis": "Intermediate", "drill_recommendation": "Goalie Lead Hand Drill / Egg Toss (p. 47)" }, "Clearing & Passing": { "title": "3. Clearing & Passing", "assessment": "Makes safe outlet passes but could improve decision-making under pressure.", "expectation": "You have 4 seconds. Look to shot origin, then breaking middies, then defenders.", "improvement_plan": "Do not let riders speed up your internal clock. Take a breath.", "skill_diagnosis": "Beginner", "drill_recommendation": "Crooked Arrow Clear (incorporating live pressure)" }, "Communication & Leadership": { "title": "4. Communication & Leadership (Quarterbacking)", "assessment": "Vocal and clear with defensive calls. Aim for even greater volume.", "expectation": "The goalie is the quarterback. Use the B-S-C framework (Ball, Slide, Command).", "improvement_plan": "Work with your defense to introduce advanced calls like 'GILMAN' or 'ROTATE'.", "skill_diagnosis": "Advanced", "drill_recommendation": "Practice live-game scenarios focusing on communication." } }
     performance_summary = {}
@@ -100,7 +80,6 @@ def generate_ai_critique(action_map):
     return {"summary": performance_summary, "details": detailed_critique}
 
 def generate_report_text(results, action_map):
-    # Unchanged from previous version
     report = [f"# LAX Goalie AI Coach Analysis Report\n**Date:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"]
     report.append("## 📊 Performance Summary")
     for metric, values in results['summary'].items(): report.append(f"- **{metric}:** {values['grade']}/10\n  - *Assessment:* {values['assessment']}")
@@ -116,20 +95,16 @@ def generate_report_text(results, action_map):
     report.append("\n## 🗺️ Video Action Map\n" + pd.DataFrame(action_map).to_markdown(index=False))
     return "\n\n".join(report)
 
-
 # --- UI Rendering Functions ---
 def display_video_gallery():
-    # Show placeholder ONLY if no real videos have been uploaded yet
     if not st.session_state.placeholder_removed:
         with st.container():
             st.markdown('<div class="video-card">', unsafe_allow_html=True)
             st.subheader("Your_Performance_Video.mp4")
-            # Funny placeholder video from a public source
             st.video("https://www.youtube.com/watch?v=gTsq5nLSFmQ")
             st.caption("This is a placeholder. Upload your own videos to begin analysis!")
             st.markdown('</div>', unsafe_allow_html=True)
-
-    # Display real uploaded videos
+    
     video_keys_to_delete = []
     for video_name, video_path in st.session_state.video_files.items():
         with st.container():
@@ -146,12 +121,10 @@ def display_video_gallery():
                 file_path = st.session_state.video_files.get(key)
                 if file_path and os.path.exists(file_path): os.remove(file_path)
                 del st.session_state.video_files[key]
-        # If last video is deleted, reset placeholder flag
         if not st.session_state.video_files: st.session_state.placeholder_removed = False
         st.rerun()
 
 def display_analysis_dashboard(results, report_data):
-    # Unchanged
     col1, col2 = st.columns([3, 1])
     with col1:
         st.header("📊 Analysis Dashboard")
@@ -163,7 +136,6 @@ def display_analysis_dashboard(results, report_data):
         with cols[i]: st.markdown(f'<div class="metric-card"><h4>{metric.split("(")[0].strip()}</h4><p class="grade">{values["grade"]}/10</p></div>', unsafe_allow_html=True); st.caption(values['assessment'])
 
 def display_charts(results):
-    # Unchanged
     import plotly.graph_objects as go; import plotly.express as px
     radar_df = pd.DataFrame(dict(r=[v['grade'] for v in results['summary'].values()], theta=list(results['summary'].keys())))
     bar_data = [{'Metric': m, 'value': v[k], 'variable': key} for key, v in results['details'].items() for m,k in [('Objective', 'objective_grade'), ('Subjective', 'subjective_grade')]]
@@ -175,7 +147,6 @@ def display_charts(results):
         st.subheader("Objective vs Subjective"); fig = px.bar(bar_df, x="Metric", y="value", color="variable", barmode="group"); fig.update_layout(yaxis=dict(range=[0, 10]), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color="#E0E0E0"), legend_title_text=''); st.plotly_chart(fig, use_container_width=True)
 
 def display_detailed_critique(results, action_map):
-    # Unchanged
     st.header("📝 Detailed Technical Critique");
     with st.expander("🗺️ Video Action Map (All Events)", expanded=False): st.dataframe(pd.DataFrame(action_map)[['Video', 'Timestamp', 'Action']], use_container_width=True)
     for category, critique in results['details'].items():
@@ -185,42 +156,30 @@ def display_detailed_critique(results, action_map):
             st.info(f"**Skill Diagnosis:** {critique['skill_diagnosis']} | **Prescribed Drill:** {critique['drill_recommendation']}")
 
 def display_summary_and_next_steps(results):
-    # Unchanged
     st.header("🎯 Summary & Next Steps"); col1, col2 = st.columns(2)
     with col1: st.subheader("Key Takeaways"); best_skill, worst_skill = max(results['summary'], key=lambda k: results['summary'][k]['grade']), min(results['summary'], key=lambda k: results['summary'][k]['grade']); st.success(f"**Strength: {best_skill}**"); st.warning(f"**To Improve: {worst_skill}**")
     with col2: st.subheader("Training Regime"); [st.markdown(f"- **For {cat}:** *{crit['drill_recommendation']}*") for cat, crit in results['details'].items()]
-
 
 # --- Main App Logic ---
 def main():
     load_css()
     st.title("🥍 LAX Goalie AI Coach")
 
-    # --- TOP ROW: TABS & NEW ANALYSIS BUTTON ---
     col1, col2, col3 = st.columns([0.4, 0.4, 0.2])
     with col1:
         tab1, tab2 = st.tabs(["▶️ Video Management & Analysis", "⚙️ Knowledge Base"])
     with col3:
-        st.write("") # Spacer
-        st.write("") # Spacer
+        st.write(""); st.write("") # Spacers
         if st.button("🔄 New Analysis Session"):
-            # Clear all session state variables related to uploads and results
             for key in list(st.session_state.keys()):
                 if key in ['video_files', 'analysis_results', 'action_map', 'analysis_in_progress', 'placeholder_removed']:
                     del st.session_state[key]
-            # Optional: Delete local temp files
             if os.path.exists("temp_videos"):
                 for f in os.listdir("temp_videos"): os.remove(os.path.join("temp_videos", f))
             st.rerun()
 
     with tab1:
         st.header("Upload New Video")
-        # NOTE: The file size limit is a PLATFORM limit on Streamlit Cloud, not code.
-        # This code will work on other platforms (like Cloud Run) that allow larger uploads.
-        st.warning("Platform Notice: Uploads may be limited by the hosting service (e.g., 200MB on free Streamlit Cloud).")
-        
-        # We revert to local file handling as GCS setup is complex and was failing.
-        # This provides a working app on Streamlit Cloud within its limits.
         uploaded_files = st.file_uploader("Upload Goalie Videos", type=["mp4", "mov", "avi", "mpeg4"], accept_multiple_files=True, label_visibility="collapsed")
         
         if uploaded_files:
@@ -231,14 +190,12 @@ def main():
             for f in uploaded_files:
                 if f.name not in st.session_state.video_files:
                     path = os.path.join(temp_dir, f.name)
-                    with open(path, "wb") as out_file:
-                        out_file.write(f.getbuffer())
+                    with open(path, "wb") as out_file: out_file.write(f.getbuffer())
                     st.session_state.video_files[f.name] = path
             st.rerun()
 
         display_video_gallery()
         
-        # Only show analyze button if there are real files
         if st.session_state.video_files and not st.session_state.analysis_in_progress:
             st.markdown("---")
             if st.button("🚀 Analyze Performance for All Videos", use_container_width=True, type="primary"):
@@ -246,7 +203,6 @@ def main():
                 st.rerun()
 
         if st.session_state.analysis_in_progress:
-            # Analysis progress logic (unchanged)
             num_videos = len(st.session_state.video_files); total_duration_estimate = num_videos * 10 + 5
             progress_container = st.empty()
             with progress_container.container():
@@ -275,7 +231,6 @@ def main():
             display_summary_and_next_steps(st.session_state.analysis_results)
 
     with tab2:
-        # Knowledge base logic (unchanged)
         st.header("📚 Central Knowledge Base")
         st.info("The AI's analysis for all users is powered by these documents, which are bundled with the application.")
         kb_path = "knowledge_base"
@@ -285,7 +240,7 @@ def main():
             if not knowledge_files: st.warning("No reference documents found.")
             for f in knowledge_files: st.markdown(f"- 📄 **{f}**")
         except FileNotFoundError:
-            st.error(f"Error: The directory '{kb_path}' was not found in the repository.")
+            st.error(f"Error: The directory '{kb_path}' was not found. Please ensure it is in your GitHub repository.")
         st.markdown("---\n" + "**How to Update:** To change reference documents, update the `knowledge_base` folder in the project's GitHub repository and redeploy.")
 
 if __name__ == "__main__":
