@@ -1,0 +1,10 @@
+# This file tells gcloud to ignore everything by default...
+*
+
+# ...and then to UN-ignore only the files and folders we absolutely need.
+# This prevents it from scanning irrelevant system directories.
+
+!app.py
+!requirements.txt
+!Dockerfile
+!knowledge_base/
